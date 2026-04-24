@@ -34,13 +34,25 @@ jobs:
 
       - name: Create eslint config
         run: |
-          cat > .eslintrc.json << 'ESLINT'
-          {
-            "env": { "node": true, "es2021": true },
-            "extends": "eslint:recommended",
-            "parserOptions": { "ecmaVersion": 2021 }
-          }
+          cat > eslint.config.mjs << 'ESLINT'
+          import js from "@eslint/js";
+          export default [
+            js.configs.recommended,
+            {
+              languageOptions: {
+                ecmaVersion: 2021,
+                globals: {
+                  require: "readonly",
+                  module: "readonly",
+                  process: "readonly",
+                  __dirname: "readonly",
+                  console: "readonly"
+                }
+              }
+            }
+          ];
           ESLINT
+          npm install -g @eslint/js
 
       - name: Lint JavaScript files
         run: eslint frontend/app.js
