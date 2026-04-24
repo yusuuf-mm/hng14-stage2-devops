@@ -1,18 +1,15 @@
 # Build stage
-FROM node:20-slim AS builder
-
+FROM node:20-alpine AS builder
 WORKDIR /app
-
 COPY package.json .
 RUN npm install --production
 
 # Final stage
-FROM node:20-slim
-
+FROM node:20-alpine
 WORKDIR /app
 
 # Create non-root user
-RUN useradd -m -u 1001 appuser
+RUN adduser -D -u 1001 appuser
 
 # Copy dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
