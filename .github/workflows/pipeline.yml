@@ -29,33 +29,23 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install eslint
-        run: npm install -g eslint
+      - name: Install eslint locally
+        run: |
+          npm init -y
+          npm install eslint@8
 
       - name: Create eslint config
         run: |
-          cat > eslint.config.mjs << 'ESLINT'
-          import js from "@eslint/js";
-          export default [
-            js.configs.recommended,
-            {
-              languageOptions: {
-                ecmaVersion: 2021,
-                globals: {
-                  require: "readonly",
-                  module: "readonly",
-                  process: "readonly",
-                  __dirname: "readonly",
-                  console: "readonly"
-                }
-              }
-            }
-          ];
+          cat > .eslintrc.json << 'ESLINT'
+          {
+            "env": { "node": true, "es2021": true },
+            "extends": "eslint:recommended",
+            "parserOptions": { "ecmaVersion": 2021 }
+          }
           ESLINT
-          npm install -g @eslint/js
 
       - name: Lint JavaScript files
-        run: eslint frontend/app.js
+        run: npx eslint frontend/app.js
 
       - name: Lint Dockerfiles with hadolint
         uses: hadolint/hadolint-action@v3.1.0
