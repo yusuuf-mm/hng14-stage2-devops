@@ -1,9 +1,10 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const app = express();
 
-const API_URL = "http://localhost:8000";
+const app = express();
+const API_URL = process.env.API_URL || "http://api:8000";
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'views')));
@@ -26,6 +27,10 @@ app.get('/status/:id', async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Frontend running on port 3000');
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Frontend running on port ${PORT}`);
 });
