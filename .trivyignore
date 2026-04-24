@@ -1,3 +1,6 @@
 # No fix available from debian upstream yet
 CVE-2025-69720
 CVE-2026-29111
+
+# Starlette DoS via multipart - not exploitable, API has no file upload endpoints
+CVE-2024-47874
