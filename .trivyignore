@@ -1,6 +1,8 @@
 # No fix available from debian upstream yet
 CVE-2025-69720
 CVE-2026-29111
+CVE-2026-0861
+CVE-2023-45853
 
 # Starlette DoS via multipart - API has no file upload endpoints
 CVE-2024-47874
@@ -9,3 +11,17 @@ CVE-2024-47874
 CVE-2026-23949
 CVE-2026-24049
 CVE-2025-47273
+
+# npm bundled packages (tar, minimatch, glob, cross-spawn inside npm CLI)
+# not used by the app - only present in npm's own tooling
+CVE-2024-21538
+CVE-2025-64756
+CVE-2026-26996
+CVE-2026-27903
+CVE-2026-27904
+CVE-2026-23745
+CVE-2026-23950
+CVE-2026-24842
+CVE-2026-26960
+CVE-2026-29786
+CVE-2026-31802
