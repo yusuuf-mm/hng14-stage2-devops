@@ -2,16 +2,14 @@
 FROM python:3.11-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade "setuptools==78.1.0" "wheel==0.46.2" && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Final stage
 FROM python:3.11-slim
 WORKDIR /app
 
-# Create non-root user and upgrade vulnerable base packages
-RUN useradd -m -u 1001 appuser && \
-    pip install --no-cache-dir --upgrade "setuptools==78.1.0" "wheel==0.46.2"
+# Create non-root user
+RUN useradd -m -u 1001 appuser
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local

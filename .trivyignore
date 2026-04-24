@@ -2,5 +2,10 @@
 CVE-2025-69720
 CVE-2026-29111
 
-# Starlette DoS via multipart - not exploitable, API has no file upload endpoints
+# Starlette DoS via multipart - API has no file upload endpoints
 CVE-2024-47874
+
+# Vendored inside setuptools - only active during pip install, not at runtime
+CVE-2026-23949
+CVE-2026-24049
+CVE-2025-47273
