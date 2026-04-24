@@ -1,39 +1,31 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install flake8
         run: pip install flake8
-
       - name: Lint Python files
         run: flake8 api/main.py worker/worker.py --max-line-length=100
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install eslint locally
         run: |
           npm init -y
           npm install eslint@8
-
       - name: Create eslint config
         run: |
           cat > .eslintrc.json << 'ESLINT'
@@ -43,51 +35,41 @@ jobs:
             "parserOptions": { "ecmaVersion": 2021 }
           }
           ESLINT
-
       - name: Lint JavaScript files
         run: npx eslint frontend/app.js
-
       - name: Lint Dockerfiles
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: api/Dockerfile
-
       - name: Lint worker Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: worker/Dockerfile
-
       - name: Lint frontend Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile
-
   test:
     name: Test
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         run: |
           pip install fastapi uvicorn redis pytest pytest-cov httpx
-
       - name: Run tests
         run: |
           pytest api/tests/ -v --cov=api --cov-report=xml --cov-report=term
-
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
-
   build:
     name: Build & Push
     runs-on: ubuntu-latest
@@ -99,12 +81,10 @@ jobs:
           - 5000:5000
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: network=host
-
       - name: Build and push API image
         uses: docker/build-push-action@v5
         with:
@@ -115,7 +95,6 @@ jobs:
             localhost:5000/api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build and push worker image
         uses: docker/build-push-action@v5
         with:
@@ -126,7 +105,6 @@ jobs:
             localhost:5000/worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -137,7 +115,6 @@ jobs:
             localhost:5000/frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -149,23 +126,35 @@ jobs:
           - 5000:5000
     steps:
       - uses: actions/checkout@v4
-
       - name: Rebuild images for scanning
         run: |
           docker build -t localhost:5000/api:latest ./api
           docker build -t localhost:5000/worker:latest ./worker
           docker build -t localhost:5000/frontend:latest ./frontend
-
-      # 🔍 SHOW vulnerabilities in logs (this is the key fix)
-      - name: Scan API image (fail on critical)
+      - name: Scan API image
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: localhost:5000/api:latest
           format: table
           severity: CRITICAL,HIGH
           exit-code: '1'
-
-      # 📁 Save SARIF report without failing again
+          trivyignores: .trivyignore
+      - name: Scan worker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: localhost:5000/worker:latest
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          trivyignores: .trivyignore
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: localhost:5000/frontend:latest
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          trivyignores: .trivyignore
       - name: Save API SARIF report
         uses: aquasecurity/trivy-action@master
         with:
@@ -173,21 +162,19 @@ jobs:
           format: sarif
           output: trivy-api.sarif
           exit-code: '0'
-
+          trivyignores: .trivyignore
       - name: Upload Trivy results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: trivy-results
           path: trivy-*.sarif
-
   integration:
     name: Integration Test
     runs-on: ubuntu-latest
     needs: security
     steps:
       - uses: actions/checkout@v4
-
       - name: Create .env file
         run: |
           cat > .env << 'ENVEOF'
@@ -196,21 +183,17 @@ jobs:
           API_URL=http://api:8000
           FRONTEND_PORT=3000
           ENVEOF
-
       - name: Start stack
         run: docker compose up -d --build
-
       - name: Wait for stack to be healthy
         run: |
           echo "Waiting for services to be healthy..."
           timeout 120 bash -c 'until docker compose ps | grep -E "healthy"; do sleep 5; done'
           sleep 10
-
       - name: Submit a job and poll for completion
         run: |
           RESPONSE=$(curl -s -X POST http://localhost:3000/submit)
           JOB_ID=$(echo $RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
-
           for i in $(seq 1 20); do
             STATUS=$(curl -s http://localhost:3000/status/$JOB_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
             if [ "$STATUS" = "completed" ]; then
@@ -219,11 +202,9 @@ jobs:
             sleep 3
           done
           exit 1
-
       - name: Tear down stack
         if: always()
         run: docker compose down -v
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -231,7 +212,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
       - name: Deploy via rolling update
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -241,16 +221,12 @@ jobs:
           script: |
             cd ~/hng14-stage2-devops
             git pull origin main
-
             for SERVICE in api worker frontend; do
               docker compose build $SERVICE
               OLD_CONTAINER=$(docker compose ps -q $SERVICE)
-
               docker compose up -d --no-deps --scale $SERVICE=2 $SERVICE
               sleep 5
-
               NEW_CONTAINER=$(docker compose ps -q $SERVICE | grep -v $OLD_CONTAINER | head -1)
-
               for i in $(seq 1 12); do
                 HEALTH=$(docker inspect --format='{{.State.Health.Status}}' $NEW_CONTAINER 2>/dev/null)
                 if [ "$HEALTH" = "healthy" ]; then
@@ -266,5 +242,4 @@ jobs:
                 sleep 5
               done
             done
-
             docker image prune -f
